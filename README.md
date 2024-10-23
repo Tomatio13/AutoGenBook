@@ -95,7 +95,7 @@ The following modifications have been made to AutoGenBook created by [hooked-on-
 Below is a basic usage example of `AutoGenBook.py`:
 
 ```bash
-python AutoGenBook.py "This is the content of the book" "young adults" 150 --level intermediate
+docker exec autogenbook-autogenbook-1 python AutoGenBook.py "This is the content of the book" "young adults" 150 --level intermediate
 ```
 
 ### Level of Mathematical Expression Usage
