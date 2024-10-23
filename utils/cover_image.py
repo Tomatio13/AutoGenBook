@@ -123,14 +123,16 @@ class cover_image:
         offset = (80,40)
         im.paste(coverImage, offset, coverImage)
 
-        #final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.png'%datetime.datetime.now())))
+        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images'))
+        os.makedirs(final_path,exist_ok=True)
+
         final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.png'%uuid.uuid4())))
         im.save(final_path)
         im.close()
 
         im = Image.open(final_path)
         fig = im.convert('RGB')
-        #final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.eps'%datetime.datetime.now())))
+
         final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.eps'%uuid.uuid4())))
         fig.save(final_path,lossless = True)
         im.close()
