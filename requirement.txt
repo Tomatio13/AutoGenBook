@@ -1,0 +1,8 @@
+pygraphviz
+pylatex
+python-dotenv
+pydantic
+matplotlib
+networkx
+openai
+anthropic
