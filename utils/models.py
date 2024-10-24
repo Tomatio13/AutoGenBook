@@ -62,7 +62,8 @@ class llms:
         try:
             # response_modelを用いたsystemメッセージの置換
             if response_format:
-                model_example = response_format.schema_json(indent=2)
+                schema = response_format.model_json_schema()
+                model_example = json.dumps(schema, indent=2)
                 existing_content = messages[0].get("content", "")
                 systems= f"{existing_content}\nレスポンスは以下の形式に従ってください:\n{model_example}"
             else:
@@ -89,7 +90,8 @@ class llms:
         """
         try:
             if response_format:
-                model_example = response_format.schema_json(indent=2)
+                schema = response_format.model_json_schema()
+                model_example = json.dumps(schema, indent=2)
                 existing_content = messages[0].get("content", "")
                 messages[0]["content"] = f"{existing_content}\nレスポンスは以下の形式に従ってください:\n{model_example}"
 

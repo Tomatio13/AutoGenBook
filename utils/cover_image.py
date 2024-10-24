@@ -6,7 +6,7 @@ from fontTools.ttLib import TTFont
 import uuid
 
 class cover_image:
-    def generate_image(self,title, topText, author, image_code, theme, guide_text_placement='bottom_right', guide_text='The Definitive Guide'):
+    def generate_image(self,base_dir,title, topText, author, image_code, theme, guide_text_placement='bottom_right', guide_text='The Definitive Guide'):
 
         themeColors = {
             "0" : (85,19,93,255),
@@ -122,18 +122,15 @@ class cover_image:
 
         offset = (80,40)
         im.paste(coverImage, offset, coverImage)
-
-        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images'))
-        os.makedirs(final_path,exist_ok=True)
-
-        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.png'%uuid.uuid4())))
+        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..',base_dir,('%s.png'%uuid.uuid4())))
+        #final_path=os.path.join(base_dir,('%s.png'%uuid.uuid4()))
         im.save(final_path)
         im.close()
 
         im = Image.open(final_path)
         fig = im.convert('RGB')
-
-        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','cover_images', ('%s.eps'%uuid.uuid4())))
+        final_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..',base_dir,('%s.eps'%uuid.uuid4())))
+        #final_path=os.path.join(base_dir,('%s.eps'%uuid.uuid4()))
         fig.save(final_path,lossless = True)
         im.close()
         fig.close()

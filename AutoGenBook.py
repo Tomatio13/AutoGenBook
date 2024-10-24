@@ -14,6 +14,8 @@ from pydantic import BaseModel
 import argparse
 from utils.models import llms
 from utils.cover_image import cover_image
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 class DirName(BaseModel):
     dirname: str
@@ -197,7 +199,13 @@ class BookGenerator:
         コードを記述する際には、\\begin{{verbatim}} \\end{{verbatim}}で括るのを忘れないように気をつけください。
         説明文中にファイル名やメソッド名などを記述する際には、バッククォート（`）ではなく、\texttt{{}}で囲んで下さい。
         説明文中にバッククォート（`）は絶対に使用しないで下さい、絶対にです。
-        同様に中括弧（{{ や }}）はバックスラッシュでエスケープする必要があります。具体的には、\\{{ と \\}} と書きます。
+        中括弧（{{ や }}）はバックスラッシュでエスケープする必要があります。具体的には、\\{{ と \\}} と書きます。
+        説明文中にインライン数式を記述する場合、数式の前後を $と$で囲んで書いて下さい。具体的には、3 \times 2は$3 \times 2$と書きます。
+        hash(#)は、\\#と書いて下さい。doller($)は、\$と書いて下さい。percent(%)は、\\%と書いて下さい。
+        tilde(~)は\\textasciitildeと書いて下さい。underscore(_)は、\\_と書いて下さい。
+        caret(^)は\\textasciicircumと書いて下さい。backslash(\\)は\\textbackslashか、数式内の場合は\\backslashと書いて下さい。
+        図解は不要です。外部のpngを参照するような記述はしないで下さい。
+        上記の注意事項をよく読み、絶対に間違わないようにして下さい。
         出力形式は以下のようにお願いします．
         ```tex
         本文の内容
@@ -263,7 +271,6 @@ class BookGenerator:
             needsSubdivision=True
         )
 
-        # 章（部）について
         self.book_graph.add_nodes_from([(str(idx+1), child) for idx, child in enumerate(book_json["childs"])])
         self.book_graph.add_edges_from([(self.book_node_name, str(idx+1)) for idx in range(len(book_json["childs"]))])
 
@@ -293,17 +300,61 @@ class BookGenerator:
         elif equation_frequency_level == 5:
             return "数式を最大限に活用してください。可能な限り多くの概念や関係性を数式で表現してください．"
 
+
+    def get_llm_response(self,prompt:str,response_format:type):
+        messages=[
+            {"role": "system", "content": "あなたは誠実で優秀な日本人の作家です"},
+            {"role": "user", "content": prompt}
+        ]
+
+        completion = llms._call_api(
+            messages=messages,
+            response_format=response_format
+        )
+
+        return completion
+
+    def async_gpt_responses(self,prompts,response_formats):                       
+        try:
+            # 新しいイベントループを作成して実行する
+            responses = []
+            
+            # ThreadPoolExecutorで非同期にAPI呼び出し
+            with ThreadPoolExecutor() as executor:
+                loop = asyncio.new_event_loop()  # 新しいイベントループを作成
+                asyncio.set_event_loop(loop)    # それを現在のループとして設定
+
+                tasks = [
+                    loop.run_in_executor(executor, self.get_llm_response, prompt, response_formats[index])
+                    for index, prompt in enumerate(prompts)
+                ]
+                responses = loop.run_until_complete(asyncio.gather(*tasks))
+                loop.close()  # イベントループを閉じる
+            
+            return responses
+        except Exception as e:
+            # エラーロギング
+            logging.error(f"エラー: {str(e)}")
+            raise ValueError(f"エラーが発生しました。{str(e)}")
+
     def generate_book_detail(self):
         logging.info("3. 章・節の内容を生成しています")
         self.book_node = self.book_graph.nodes[self.book_node_name]
         next_parent_list = [self.book_node_name]
 
+        prompts_list=[]
+        response_format_list=[]
+        index_list=[]
+
         for depth in range(self.max_depth):
             parent_list = next_parent_list
             next_parent_list = []
             for parent_node_name in parent_list:
+                prompts_list = []
+                response_format_list=[]
+                index_list=[]
+                            
                 for _, child_node_name in enumerate(self.book_graph.successors(parent_node_name)):
-
                     child_node = self.book_graph.nodes[child_node_name]
                     if (child_node["needsSubdivision"] or child_node["n_pages"] >= self.max_output_pages) and depth < self.max_depth-1:
                         
@@ -317,26 +368,9 @@ class BookGenerator:
                             str(child_node["summary"])
                         )
 
-                        messages=[
-                            {"role": "system", "content": "あなたは誠実で優秀な日本人の作家です"},
-                            {"role": "user", "content": prompt}
-                        ]
-                        
-                        completion = llms._call_api(
-                            messages=messages,
-                            response_format=SectionList
-                        )
-                        
-                        result=llms._reponse_api(completion,"json") 
-                        data=json.loads(result)
-                        section_json = data.get("sectionlist", [])
-                        
-                        # グラフノードの作成・結果の格納
-                        self.book_graph.add_nodes_from([(child_node_name + "-" + str(idx+1), grandchild) for idx, grandchild in enumerate(section_json)])
-                        self.book_graph.add_edges_from([(child_node_name, child_node_name + "-" + str(idx+1)) for idx in range(len(section_json))])
-
-                        # 分節化した場合のみ次の親になる
-                        next_parent_list.append(child_node_name)
+                        prompts_list.append(prompt)
+                        response_format_list.append(SectionList)
+                        index_list.append("json")
 
                     elif not child_node["needsSubdivision"] or depth == self.max_depth-1:
                         prompt=self.create_prompt_content_creation(
@@ -348,17 +382,31 @@ class BookGenerator:
                             str(child_node["summary"]),
                             str(self.get_equation_frequency(self.book_graph.graph["equation_frequency_level"]))
                         )
+                        prompts_list.append(prompt)
+                        response_format_list.append("")
+                        index_list.append("plain")
+                    else:
+                        logging.error("Error: needsSubdivision attribute is not set")
+            
+                # 並列でAPIを呼び出すぞ
+                completions=self.async_gpt_responses(prompts_list,response_format_list)
 
-                        messages=[
-                            {"role": "system", "content": "あなたは誠実で優秀な日本人の作家です"},
-                            {"role": "user", "content": prompt}
-                        ]
+                for index, child_node_name in enumerate(self.book_graph.successors(parent_node_name)):
+                    index_str=index_list[index]
+                    completion=completions[index]
+
+                    if index_str=="json":
+                        result=llms._reponse_api(completion,"json") 
+                        data=json.loads(result)
+                        section_json = data.get("sectionlist", [])
                         
-                        completion = llms._call_api(
-                            messages=messages,
-                            response_format=""
-                        )
-                        
+                        # グラフノードの作成・結果の格納
+                        self.book_graph.add_nodes_from([(child_node_name + "-" + str(idx+1), grandchild) for idx, grandchild in enumerate(section_json)])
+                        self.book_graph.add_edges_from([(child_node_name, child_node_name + "-" + str(idx+1)) for idx in range(len(section_json))])
+
+                        # 分節化した場合のみ次の親になる
+                        next_parent_list.append(child_node_name)
+                    else:
                         result=llms._reponse_api(completion,"")
                         # 出力をファイルに保存
                         contents_tex = self.extract_section_content(result)
@@ -369,8 +417,7 @@ class BookGenerator:
                         # グラフノードの作成・結果の格納
                         self.book_graph.add_nodes_from([(child_node_name + "-p", {"content_file_path": contents_filename})])
                         self.book_graph.add_edges_from([(child_node_name, child_node_name + "-p")])
-                    else:
-                        logging.error("Error: needsSubdivision attribute is not set")
+
 
     # ここからPDFの整形に関わる処理
 
@@ -412,18 +459,12 @@ class BookGenerator:
             f"タイトル：\n{title}\n"
             f"概要：\n{summary}\n"
             )
-        messages=[
-            {"role": "system", "content": "あなたは誠実で優秀な日本人の作家です"},
-            {"role": "user", "content": prompt}
-        ]
-        completion = llms._call_api(
-            messages=messages,
-            response_format=BookCover
-        )
+        
+        completion=self.get_llm_response(prompt,BookCover)
         result=llms._reponse_api(completion,"json") 
+
         data=json.loads(result)
         en_title = data.get("title")
-        #en_subtitle=data.get("subtitle")
         en_subtitle=""
         author=llms.get_provider_name()+":"+llms.get_model_name()
         image_Number=str(random.randint(1,40))
@@ -431,6 +472,7 @@ class BookGenerator:
 
         ci = cover_image()
         image_path=ci.generate_image(
+            self.home_dir,
             en_title,
             en_subtitle, 
             author,  
@@ -459,7 +501,6 @@ class BookGenerator:
             doc = Document(documentclass="jsreport", geometry_options=geometry_options)
             # 表紙画像の挿入
             with doc.create(Figure(position='h!')) as cover:
-
                 cover.add_image(cover_image_path, width=NoEscape(r'1\textwidth'))
      
             # プリアンブル・タイトルの追加
