@@ -17,6 +17,7 @@ from utils.cover_image import cover_image
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+
 class DirName(BaseModel):
     dirname: str
 
@@ -186,7 +187,7 @@ class BookGenerator:
                                        book_title:str,book_summary:str,target:str,n_pages:str,section_summary:str,equation_frequency:str):
         # 本文の内容の生成用プロンプト
         prompt_content_creation = prompt_common + f"""
-        以上の情報から，{book_title}というタイトルで本を作成しようと思います．本の概要を以下に示します．
+        目的：以上の情報から，{book_title}というタイトルで本を作成しようと思います．本の概要を以下に示します．
         {book_summary}
         その中の{target}についての部分を{n_pages}ページで作成したいです．1ページあたり40行を想定しています．
         この部分の概要は，以下です．
@@ -197,15 +198,20 @@ class BookGenerator:
         式をネストしないように，すなわち\\[ \\begin{{align*}} \\end{{align*}} \\]ではなく，\\begin{{align*}} \\end{{align*}}とするよう気をつけてください．
         本の内容がプログラミング言語の場合は、なるべく多くのサンプルコードも作成して下さい。
         コードを記述する際には、\\begin{{verbatim}} \\end{{verbatim}}で括るのを忘れないように気をつけください。
-        説明文中にファイル名やメソッド名などを記述する際には、バッククォート（`）ではなく、\texttt{{}}で囲んで下さい。
-        説明文中にバッククォート（`）は絶対に使用しないで下さい、絶対にです。
-        中括弧（{{ や }}）はバックスラッシュでエスケープする必要があります。具体的には、\\{{ と \\}} と書きます。
-        説明文中にインライン数式を記述する場合、数式の前後を $と$で囲んで書いて下さい。具体的には、3 \times 2は$3 \times 2$と書きます。
-        hash(#)は、\\#と書いて下さい。doller($)は、\\$と書いて下さい。percent(%)は、\\%と書いて下さい。
-        tilde(~)は\\textasciitildeと書いて下さい。underscore(_)は、\\_と書いて下さい。
-        caret(^)は\\textasciicircumと書いて下さい。backslash(\\)は\\textbackslashか、数式内の場合は\\backslashと書いて下さい。
-        図解は不要です。外部のpngを参照するような記述はしないで下さい。
+        条件：
+        出力は、Latexを想定しており、Latexが持つ特殊記号・特殊文字の出力方法を考慮して下さい。
+        - 説明文中にファイル名やメソッド名などを記述する際には、バッククォート（`）ではなく、\texttt{{}}で囲んで下さい。
+        - 中括弧（{{ や }}）はバックスラッシュでエスケープする必要があります。具体的には、\\{{ と \\}} と書きます。
+        - 説明文中にインライン数式を記述する場合、数式の前後を $と$で囲んで書いて下さい。具体的には、3 \times 2は$3 \times 2$と書きます。
+        - ハッシュ(#)は、\\#と書いて下さい。
+        - ドル($)は、\\$と書いて下さい。
+        - percent(%)は、\\%と書いて下さい。
+        - tilde(~)は\\textasciitildeと書いて下さい。
+        - アンダースコア(_)は、\\_と書いて下さい。具体的には、説明分で変数名 my_networkを記述する場合は、my\\_networkと書きます。
+        - caret(^)は\\textasciicircumと書いて下さい。backslash(\\)は\\textbackslashか、数式内の場合は\\backslashと書いて下さい。
+        - 図解は不要です。外部のpngを参照するような記述はしないで下さい。
         上記の注意事項をよく読み、絶対に間違わないようにして下さい。
+        出力形式：
         出力形式は以下のようにお願いします．
         ```tex
         本文の内容
@@ -228,7 +234,8 @@ class BookGenerator:
             equation_frequency_level=self.equation_frequency_level,
             additional_requirements=self.additional_requirements
         )
-    
+
+
     def initialize(self,book_content:str,target_readers:str,n_pages:int):
         logging.info("1. 初期化しています")
         self.validate_inputs(book_content,target_readers,n_pages)
@@ -456,6 +463,7 @@ class BookGenerator:
         # LLMによる出力
         prompt = (
             f"目的：下記のタイトルと概要をベースとして英名のタイトルと、サブタイトルを生成して下さい。\n"
+            f"条件：英名は20文字以内にして下さい"
             f"タイトル：\n{title}\n"
             f"概要：\n{summary}\n"
             )
