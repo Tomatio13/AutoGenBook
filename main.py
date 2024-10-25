@@ -5,6 +5,7 @@ from typing import Optional
 import os
 from AutoGenBook import BookGenerator
 import uvicorn
+import glob
 
 app = FastAPI(
     title="AutoGenBook API",
@@ -45,11 +46,22 @@ def generate_book_task(task_id: str, request: BookRequest):
         # PDFを生成
         bookgenerator.create_pdf()
 
+        # カバー画像のパスを取得（.png ファイルを検索）
+        cover_files = glob.glob(os.path.join(bookgenerator.home_dir, "*.png"))
+        if cover_files:
+            cover_path = cover_files[0]  # 完全なパス
+            cover_filename = os.path.basename(cover_path)  # ファイル名のみ
+        else:
+            cover_path = None
+            cover_filename = None
+
         # タスクの状態を更新
         task_status[task_id] = {
             "status": "completed",
             "output_dir": bookgenerator.home_dir,
-            "title": bookgenerator.book_node["title"]
+            "title": bookgenerator.book_node["title"],
+            "cover_path": cover_path,
+            "cover_filename": cover_filename
         }
 
     except Exception as e:
@@ -110,6 +122,24 @@ async def download_book(task_id: str):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/download-cover/{task_id}")
+async def download_cover(task_id: str):
+    if task_id not in task_status:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = task_status[task_id]
+    if task["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Book generation is not completed")
+    
+    if not task.get("cover_path"):
+        raise HTTPException(status_code=404, detail="Cover image not found")
+    
+    return FileResponse(
+        path=task["cover_path"],
+        filename=task["cover_filename"],
+        media_type="image/png"
+    )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8100, reload=True)

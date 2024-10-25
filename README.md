@@ -156,7 +156,13 @@ The service runs at `http://localhost:8100`.
 
 Downloads the generated PDF book. This is available only if the task is completed.
 
-### 4. Health Check
+### 4. Download Cover Image
+
+**Endpoint**: `GET /download-cover/{task_id}`
+
+Downloads the generated cover image in PNG format. This is available only if the task is completed.
+
+### 5. Health Check
 
 **Endpoint**: `GET /health`
 
@@ -189,6 +195,11 @@ curl "http://localhost:8100/task/{task_id}"
 3. Download PDF:
 ```bash
 curl -O -J "http://localhost:8100/download/{task_id}"
+```
+
+4. Download Cover Image:
+```bash
+curl -O -J "http://localhost:8100/download-cover/{task_id}"
 ```
 
 ## API Documentation
