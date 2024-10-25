@@ -133,7 +133,8 @@ The service runs at `http://localhost:8100`.
 {
     "status": "accepted",
     "message": "Book generation started",
-    "task_id": "Generated task ID"
+    "task_id": "Generated task ID",
+    "author": None
 }
 ```
 
@@ -146,7 +147,8 @@ The service runs at `http://localhost:8100`.
 {
     "status": "completed",  // "processing", "completed", "failed"
     "output_dir": "Path to the output directory",
-    "title": "Title of the generated book"
+    "title": "Title of the generated book",
+    "author": "PROVIDER:MODEL_NAME"  // Example: "OPENAI:gpt-4" or "ANTHROPIC:claude-3-sonnet"
 }
 ```
 

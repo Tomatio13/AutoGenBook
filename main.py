@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 import os
 from AutoGenBook import BookGenerator
+from utils.models import llms
 import uvicorn
 import glob
 
@@ -23,6 +24,7 @@ class BookResponse(BaseModel):
     message: str
     task_id: str
     output_dir: Optional[str] = None
+    author: Optional[str] = None
 
 # 進行状況を保存する辞書
 task_status = {}
@@ -30,6 +32,8 @@ task_status = {}
 def generate_book_task(task_id: str, request: BookRequest):
     try:
         bookgenerator = BookGenerator()
+        llm = llms()
+        author = f"{llm.get_provider_name()}:{llm.get_model_name()}"
         
         # 初期化
         bookgenerator.initialize(request.book_content, request.target_readers, request.n_pages)
@@ -61,7 +65,8 @@ def generate_book_task(task_id: str, request: BookRequest):
             "output_dir": bookgenerator.home_dir,
             "title": bookgenerator.book_node["title"],
             "cover_path": cover_path,
-            "cover_filename": cover_filename
+            "cover_filename": cover_filename,
+            "author": author
         }
 
     except Exception as e:
@@ -76,7 +81,10 @@ async def generate_book(request: BookRequest, background_tasks: BackgroundTasks)
     task_id = str(uuid.uuid4())
     
     # タスクの初期状態を設定
-    task_status[task_id] = {"status": "processing"}
+    task_status[task_id] = {
+        "status": "processing",
+        "author": None
+    }
     
     # バックグラウンドタスクとして本の生成を開始
     background_tasks.add_task(generate_book_task, task_id, request)
@@ -84,7 +92,8 @@ async def generate_book(request: BookRequest, background_tasks: BackgroundTasks)
     return {
         "status": "accepted",
         "message": "本の生成を開始しました",
-        "task_id": task_id
+        "task_id": task_id,
+        "author": None
     }
 
 @app.get("/task/{task_id}")
