@@ -1,11 +1,14 @@
+version: '3'
 services:
   autogenbook:
     image: autogenbook:1.0
-    working_dir: /app
     build: .
     volumes:
-      - .:/app    
-    command: tail -f /dev/null
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
+      - .:/app
+    ports:
+      - "8100:8100"
+    command: uvicorn main:app --host 0.0.0.0 --port 8100 --reload
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env

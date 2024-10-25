@@ -6,3 +6,5 @@ matplotlib
 networkx
 openai
 anthropic
+fastapi
+uvicorn

@@ -321,22 +321,18 @@ class BookGenerator:
 
         return completion
 
-    def async_gpt_responses(self,prompts,response_formats):                       
+    def async_gpt_responses(self, prompts, response_formats):                       
         try:
-            # 新しいイベントループを作成して実行する
             responses = []
-            
             # ThreadPoolExecutorで非同期にAPI呼び出し
             with ThreadPoolExecutor() as executor:
-                loop = asyncio.new_event_loop()  # 新しいイベントループを作成
-                asyncio.set_event_loop(loop)    # それを現在のループとして設定
-
-                tasks = [
-                    loop.run_in_executor(executor, self.get_llm_response, prompt, response_formats[index])
+                # 各プロンプトに対して同期的にAPIを呼び出す
+                futures = [
+                    executor.submit(self.get_llm_response, prompt, response_formats[index])
                     for index, prompt in enumerate(prompts)
                 ]
-                responses = loop.run_until_complete(asyncio.gather(*tasks))
-                loop.close()  # イベントループを閉じる
+                # 結果を収集
+                responses = [future.result() for future in futures]
             
             return responses
         except Exception as e:
@@ -596,3 +592,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.book_content, args.target_readers, args.n_pages,args.level)
+

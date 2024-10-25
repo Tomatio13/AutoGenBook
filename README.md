@@ -110,6 +110,93 @@ docker exec autogenbook-autogenbook-1 python AutoGenBook.py "This is the content
 5: Make maximum use of mathematical expressions. Express as many concepts and relationships as possible using formulas.
 
 
+## API Endpoints
+
+The service runs at `http://localhost:8100`.
+
+### 1. Start Book Generation
+
+**Endpoint**: `POST /generate-book`
+
+**Request Body**:
+```json
+{
+    "book_content": "Description of the book's content",
+    "target_readers": "Description of the target readers",
+    "n_pages": 50,
+    "level": 1  // Optional: frequency of mathematical expressions (1-5)
+}
+```
+
+**Response**:
+```json
+{
+    "status": "accepted",
+    "message": "Book generation started",
+    "task_id": "Generated task ID"
+}
+```
+
+### 2. Check Task Status
+
+**Endpoint**: `GET /task/{task_id}`
+
+**Response**:
+```json
+{
+    "status": "completed",  // "processing", "completed", "failed"
+    "output_dir": "Path to the output directory",
+    "title": "Title of the generated book"
+}
+```
+
+### 3. Download PDF
+
+**Endpoint**: `GET /download/{task_id}`
+
+Downloads the generated PDF book. This is available only if the task is completed.
+
+### 4. Health Check
+
+**Endpoint**: `GET /health`
+
+**Response**:
+```json
+{
+    "status": "healthy"
+}
+```
+
+## Usage Examples
+
+1. Request book generation:
+```bash
+curl -X POST "http://localhost:8100/generate-book" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "book_content": "Introduction to Python Programming",
+           "target_readers": "Beginner programmers",
+           "n_pages": 50,
+           "level": 1
+         }'
+```
+
+2. Check task status:
+```bash
+curl "http://localhost:8100/task/{task_id}"
+```
+
+3. Download PDF:
+```bash
+curl -O -J "http://localhost:8100/download/{task_id}"
+```
+
+## API Documentation
+
+API documentation using Swagger UI is available at:
+- http://localhost:8100/docs
+- http://localhost:8100/redoc
+
 ## What’s Inside AutoGenBook
 
 While you can dive into the code for all the details, I realize that it might be a bit hard to follow, so let me explain the basic idea and workflow behind the tool.
