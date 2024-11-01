@@ -198,19 +198,13 @@ class BookGenerator:
         式をネストしないように，すなわち\\[ \\begin{{align*}} \\end{{align*}} \\]ではなく，\\begin{{align*}} \\end{{align*}}とするよう気をつけてください．
         本の内容がプログラミング言語の場合は、なるべく多くのサンプルコードも作成して下さい。
         コードを記述する際には、\\begin{{verbatim}} \\end{{verbatim}}で括るのを忘れないように気をつけください。
+        最終的にlatexmkでコンパイルしてPDFに変換するので変換に失敗するような特殊記号は必ずエスケープして下さい。
         条件：
         出力は、Latexを想定しており、Latexが持つ特殊記号・特殊文字の出力方法を考慮して下さい。
-        - 説明文中にファイル名やメソッド名などを記述する際には、バッククォート（`）ではなく、\texttt{{}}で囲んで下さい。
-        - 中括弧（{{ や }}）はバックスラッシュでエスケープする必要があります。具体的には、\\{{ と \\}} と書きます。
-        - 説明文中にインライン数式を記述する場合、数式の前後を $と$で囲んで書いて下さい。具体的には、3 \times 2は$3 \times 2$と書きます。
-        - ハッシュ(#)は、\\#と書いて下さい。
-        - ドル($)は、\\$と書いて下さい。
-        - percent(%)は、\\%と書いて下さい。
-        - tilde(~)は\\textasciitildeと書いて下さい。
-        - アンダースコア(_)は、\\_と書いて下さい。具体的には、説明分で変数名 my_networkを記述する場合は、my\\_networkと書きます。
-        - caret(^)は\\textasciicircumと書いて下さい。backslash(\\)は\\textbackslashか、数式内の場合は\\backslashと書いて下さい。
+        - 文中に特殊文字（例: #, $, %, &, _, \\{{, \\}},~, ^）が含まれる場合は、必ずエスケープしてください。
+          エスケープは、特殊文字の前にバックスラッシュ（\）を付けることで行います。
         - 図解は不要です。外部のpngを参照するような記述はしないで下さい。
-        上記の注意事項をよく読み、絶対に間違わないようにして下さい。
+        上記の注意事項をよく読み、絶対に絶対に絶対に間違わないようにして下さい。間違えなければ100万ドルの報奨もらえます。
         出力形式：
         出力形式は以下のようにお願いします．
         ```tex
@@ -562,8 +556,10 @@ class BookGenerator:
 
         except Exception as e:
             logging.error(f"Can't Create PDF File :  {e}")
+            return False
 
         logging.info(f"{rename_path}.pdfの出力が完了しました")      
+        return False
 
 # Define other functionalities as functions (skipped for brevity)
 
@@ -580,7 +576,10 @@ def main(book_content, target_readers, n_pages,level):
     # 本の中身を生成
     bookgenerator.generate_book_detail()
     # PDFを生成
-    bookgenerator.create_pdf()
+    result = bookgenerator.create_pdf()
+    # if result == False:
+    #     # PDFの再作成を試みる
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a book using provided details.")
