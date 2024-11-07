@@ -16,7 +16,7 @@ from utils.models import llms
 from utils.cover_image import cover_image
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-
+from utils.convert_wav import convert_wav
 
 class DirName(BaseModel):
     dirname: str
@@ -553,17 +553,26 @@ class BookGenerator:
 
             rename_path=os.path.join(self.home_dir,self.book_node['title'])
             os.rename(output_path+".pdf",rename_path+".pdf")
+            full_path = os.path.abspath(rename_path + ".pdf")
 
         except Exception as e:
             logging.error(f"Can't Create PDF File :  {e}")
             return False
 
         logging.info(f"{rename_path}.pdfの出力が完了しました")      
-        return False
+        return full_path
+
+    def create_wav(self,filename:str,speaker:int):
+        logging.info("5. wavファイルの生成を開始します")
+        cw = convert_wav()
+        cw.set_voicevox_speaker_id(speaker)
+        wav_filename=cw.generate_wav(filename)
+        logging.info(f" {wav_filename}の出力が完了しました")
+        return wav_filename
 
 # Define other functionalities as functions (skipped for brevity)
 
-def main(book_content, target_readers, n_pages,level):
+def main(book_content, target_readers, n_pages,level,wav):
     bookgenerator = BookGenerator()
     # 初期化
     bookgenerator.initialize(book_content, target_readers, n_pages)
@@ -577,9 +586,9 @@ def main(book_content, target_readers, n_pages,level):
     bookgenerator.generate_book_detail()
     # PDFを生成
     result = bookgenerator.create_pdf()
-    # if result == False:
-    #     # PDFの再作成を試みる
-
+    
+    if wav:
+        bookgenerator.create_wav(result,wav)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a book using provided details.")
@@ -587,8 +596,9 @@ if __name__ == "__main__":
     parser.add_argument('target_readers', type=str, help='対象読者')
     parser.add_argument('n_pages', type=int, help='ページ数')
     parser.add_argument('--level', type=str, help='数式の利用頻度', default=None)
+    parser.add_argument('--wav', type=str, help='wavファイルの出力', default=None)
 
     args = parser.parse_args()
 
-    main(args.book_content, args.target_readers, args.n_pages,args.level)
+    main(args.book_content, args.target_readers, args.n_pages,args.level,args.wav)
 

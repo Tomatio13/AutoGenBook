@@ -18,6 +18,7 @@ class BookRequest(BaseModel):
     target_readers: str
     n_pages: int
     level: Optional[int] = None
+    wav_output: Optional[int] = 0
 
 class BookResponse(BaseModel):
     status: str
@@ -48,8 +49,22 @@ def generate_book_task(task_id: str, request: BookRequest):
         bookgenerator.generate_book_detail()
         
         # PDFを生成
-        bookgenerator.create_pdf()
+        filename = bookgenerator.create_pdf()
 
+        # wavファイルを生成
+        if request.wav_output > 0:
+            wav_filename = bookgenerator.create_wav(filename,request.wav_output)
+            if wav_filename:
+                wav_files = glob.glob(os.path.join(bookgenerator.home_dir, "*.wav"))
+                if wav_files:
+                    wav_path = wav_files[0]
+                    wav_filename = os.path.basename(wav_path)
+                else:
+                    wav_filename = None
+                    wav_path = None
+        else:
+            wav_filename = None
+            wav_path = None
         # カバー画像のパスを取得（.png ファイルを検索）
         cover_files = glob.glob(os.path.join(bookgenerator.home_dir, "*.png"))
         if cover_files:
@@ -66,6 +81,8 @@ def generate_book_task(task_id: str, request: BookRequest):
             "title": bookgenerator.book_node["title"],
             "cover_path": cover_path,
             "cover_filename": cover_filename,
+            "wav_path": wav_path,
+            "wav_filename": wav_filename,
             "author": author
         }
 
@@ -149,6 +166,20 @@ async def download_cover(task_id: str):
         filename=task["cover_filename"],
         media_type="image/png"
     )
+
+@app.get("/download-wav/{task_id}")
+async def download_wav(task_id: str):
+    if task_id not in task_status:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    task = task_status[task_id]
+    if task["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Book generation is not completed")
+    
+    if not os.path.exists(task["wav_path"]):
+        raise HTTPException(status_code=404, detail="WAV file not found")
+    
+    return FileResponse(path=task["wav_path"], filename=task["wav_filename"], media_type="audio/wav")   
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8100, reload=True)

@@ -8,6 +8,7 @@ RUN apt install -y latexmk
 RUN apt install -y texlive-lang-japanese
 RUN apt install -y texlive-latex-extra
 RUN apt install -y texlive-science
+RUN apt install -y ffmpeg
 
 COPY ./requirement.txt /app/requirement.txt
 RUN pip install -r requirement.txt
