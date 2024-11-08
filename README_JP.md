@@ -38,6 +38,8 @@ AutoGenBookは、LLMを使用して自動的に本を生成するPythonベース
    #MODEL=qwen2.5-coder:latest
    #OLLAMA_BASE_URL=http://localhost:11434/v1/
    #OLLAMA_MAX_TOKENS=256
+
+   # VOICEVOX_API_URL=http://host.docker.internal:50001
    ```
     *注意*
     Ollamaを指定することもできますが、MODELのmax_tokensとnum_ctxが小さいため、生成に失敗することが多く、推奨されません。
@@ -54,7 +56,7 @@ AutoGenBookは、LLMを使用して自動的に本を生成するPythonベース
 
 5. ターミナルで以下のコマンドを実行します：
    ```bash
-    docker exec autogenbook-autogenbook-1 python AutoGenBook.py "Next.jsに関する教科書" "Next.js初学者" 5
+    docker exec autogenbook-autogenbook-1 python AutoGenBook.py "Next.jsに関する教科書" "Next.js初学者" 5 --wav 13
 
     [実行ログは同じなので省略...]
    ```
@@ -72,13 +74,13 @@ AutoGenBookは、LLMを使用して自動的に本を生成するPythonベース
 - `target_readers`（必須）：本の対象読者を定義します。
 - `n_pages`（必須）：本のページ数を指定します。
 - `--level LEVEL`（オプション）：数式の使用レベルを指定します。
-
+- `--wav SPEAKER_ID`（オプション）：wavファイルの出力時のキャラクタ番号を指定します。
 ### 使用例
 
 以下は`AutoGenBook.py`の基本的な使用例です：
 
 ```bash
-docker exec autogenbook-autogenbook-1 python AutoGenBook.py "本の内容" "若い成人" 150 --level intermediate
+docker exec autogenbook-autogenbook-1 python AutoGenBook.py "本の内容" "想定読者" 5 --level 0 --wav 13
 ```
 
 ### PDF変換時の対処
@@ -104,6 +106,68 @@ latexmkを何回か実行-->ログの確認-->再度コンパイルを繰り返�
 4: 概念や関係を正確に表現するために数式を積極的に使用します。ただし、重要な説明はテキストでも提供します。
 
 5: 数式を最大限活用します。できるだけ多くの概念や関係を数式で表現します。
+
+### wavファイルの出力
+WAVファイルは、VOICEVOXの音声キャラクターを使用して本の内容を読み上げ、WAVファイルを出力します。
+
+出力には[Voicevox Core Engine](https://github.com/VOICEVOX/voicevox_engine)を使用します。
+日本語のみ対応しているため、英語表示では出力できません。
+
+以下の方法で、Voicevox Core Engineを起動してください。
+
+```bash
+mkdir voicevox
+cp docker-compose-voicevox.yml voicevox/docker-compose.yml
+cd voicevox
+docker compose up -d
+```
+Voicevoxのキャラクターは[キャラクター一覧](https://voicevox.hiroshiba.jp/)をご覧ください。
+
+### 音声キャラクターとスピーカーIDの一覧
+コマンドラインからWAVファイルを出力する場合は、以下の一覧からスピーカーIDを指定してください。
+
+| キャラクター | スピーカーID |
+| ---- | :----: |
+| 四国めたん   | 3 |
+| ずんだもん   | 3 |
+| 春日部つむぎ | 8 |
+| 雨晴はう     | 10 |
+| 波音リツ     | 9|
+| 玄野武宏     | 11 |
+| 白上虎太郎   | 12 |
+| 青山龍星     | 13 |
+| 冥鳴ひまり   | 14 |
+| 九州そら     | 16 |
+| もち子さん   | 20 |
+| 剣崎雌雄     | 21 |
+| WhiteCUL     | 23 |
+| 後鬼         | 27 |
+| No.7         | 29 |
+| ちび式じい   | 42 |
+| 櫻歌ミコ     | 43 |
+| 小夜/SAYO    | 46 |
+| ナースロボ_タイプT | 47 |
+| ✝聖騎士 紅櫻✝ | 51 |
+| 雀松朱司     | 52 |
+| 麒ヶ島宗麟   | 53 |
+| 春歌ナナ     | 54 |
+| 猫使アル     | 55 |
+| 猫使ビィ     | 58 |
+| 中国うさぎ   | 61 |
+| 栗田まろん   | 67 |
+| あいえるたん | 68 |
+| 満別花丸     | 69 |
+| 琴詠ニア     | 74 |
+| Voidoll(CV:丹下桜) | 89 |
+
+#### 音声キャラクターのクレジット
+以下、クレジットです。
+音声ファイルはクレジットを記載すれば、商用・非商用で利用可能とされています。
+[キャラクター一覧](https://voicevox.hiroshiba.jp/)の利用規約をよく読んでください。
+
+VOICEVOX：ずんだもん,四国めたん、春日部つむぎ、雨晴はう、波音リツ、玄野武宏、白上虎太郎、青山龍星、冥鳴ひまり、九州そら、
+         もち子さん、剣崎雌雄、WhiteCUL、後鬼、No.7、ちび式じい、櫻歌ミコ、小夜/SAYO、ナースロボ_タイプT、✝聖騎士 紅櫻✝、
+         雀松朱司、麒ヶ島宗麟、春歌ナナ、猫使アル、猫使ビィ、中国うさぎ、栗田まろん、あいえるたん、満別花丸、琴詠ニア、Voidoll(CV:丹下桜)
 
 ## APIエンドポイント
 
@@ -198,6 +262,11 @@ curl -O -J "http://localhost:8100/download/{task_id}"
 ```bash
 curl -O -J "http://localhost:8100/download-cover/{task_id}"
 ```
+5. WAVファイルのダウンロード：
+```bash
+curl -O -J "http://localhost:8100/download-wav/{task_id}"
+```
+
 
 ## APIドキュメント
 
