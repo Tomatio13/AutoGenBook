@@ -36,7 +36,7 @@ The following modifications have been made to AutoGenBook created by [hooked-on-
    
    #PROVIDER=GEMINI
    #MODEL=gemini-1.5-pro
-   #GEMINI_API_KEY=AIzaSyAgWuYymHzisZb2bUKKNvgUxsuXs3aQRJE
+   #GEMINI_API_KEY=<your google api key> 
    #GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/
 
    #PROVIDER=OLLAMA
