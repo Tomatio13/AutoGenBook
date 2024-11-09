@@ -145,79 +145,167 @@ class BookGenerator:
 
         return is_valid
 
-    def create_common_prompt(self):
-        prompt_common = (
-            f"以下の内容で本を執筆します．{self.book_content}"
-            f"本全体のページ数は{self.n_pages}ページ，1ページあたり40行を想定しています．ですます調で記述してください．"
-        )
-        if self.target_readers:
-            prompt_common += f"想定読者としては以下を考えています．\n {self.target_readers}"
-        if self.additional_requirements:
-            prompt_common += f"また，以下を考慮に入れてください．\n {self.additional_requirements}"
-        return prompt_common
-
-    def create_prompt_book_title(self,prompt_common:str):
-        prompt_book_title = prompt_common + """
-            以上をもとに，以下のようなjson形式で，本・章のタイトル，本・章の概要を示してください．
-            本の概要には，内容の要約だけではなく，本の主な目的やカバーする内容の範囲と深さなどについても触れてください．5から10文ほどで，詳細にお願いします．
-            また，各章に割くべきページ数を考えてください．ページ数は0.1単位で，0.8ページのように書いてください．
-            それに加え，内容の意味的凝集性から考えて，各章を分節化する必要がありますかどうか（needsSubdivision）を考えてください．trueかfalseで答えてください．
-            推測や未確認の情報は含めないでください．また，タイトルに第何章であるかは書かないでください．
-            節の数は必要に応じて変えてください．
-            """.strip()
+    def create_prompt_book_title(self):
+        prompt_book_title = f"""
+        task: 本の構造化
+        input_required:
+            - book_content: {self.book_content}
+            - total_pages: {self.n_pages}
+            - target_readers: {self.target_readers}
+            - additional_requirements: {self.additional_requirements}
+        formatting_rules:
+            writing_style: ですます調
+        page_format:
+            lines_per_page: 40
+        title_format: 
+            chapter_number: false  # 章番号を含めない
+        content_requirements:
+            book_level:
+                title: required
+                summary:
+                min_sentences: 5
+                max_sentences: 10
+                must_include:
+                    - 内容の要約
+                    - 本の主な目的
+                    - カバー範囲と深さ
+            chapter_level:
+                for_each_chapter:
+                - title: required
+                - summary: required
+                - pages:
+                    precision: 0.1
+                    format: "0.0"
+                - needsSubdivision:
+                    type: boolean
+                    purpose: 意味的凝集性の評価
+        restrictions:
+            - 推測情報を含めない
+            - 未確認情報を含めない
+        """
         return prompt_book_title
 
-    def create_prompt_section_list_creation(self,prompt_common:str,book_title:str,book_summary:str,
+    def create_prompt_section_list_creation(self,book_title:str,book_summary:str,
                                             target:str,n_pages:str,section_summary:str):
-
-        prompt_section_list_creation = prompt_common + f"""
-        以上の情報から，{book_title}というタイトルで本を作成しようと思います．本の概要を以下に示します．
-        {book_summary}
-        その中の{target}についての部分を{n_pages}ページで作成したいです．1ページあたり40行を想定しています．
-        この部分の概要は，以下です．
-        {section_summary}
-        この部分を分節化して，複数のパートに分けて欲しいです．
-        各パートのタイトルと概要を以下のようなjson形式にて出力してください．また，各パートに割くべきページ数を考えてください．ページ数は0.1単位で，0.8ページのように書いてください．
-        それに加え，内容の意味的凝集性から考えて，各章を分節化する必要がありますかどうか（needsSubdivision）を考えてください．trueかfalseで答えてください．
-        タイトルに第何章・節であるかは書かないでください．
+        prompt_section_list_creation = f"""
+        task: 本の特定部分の構造化
+        input_required:
+            - book_content: {self.book_content}
+            - book_title: {book_title}
+            - target_readers: {self.target_readers}
+            - additional_requirements: {self.additional_requirements}
+            - book_summary: {book_summary}
+            - target: {target}
+            - section_summary: {section_summary}
+            - n_pages: {n_pages}
+        formatting_rules:
+            writing_style: ですます調
+        page_format:
+            lines_per_page: 40
+        title_format:
+            chapter_number: false    # 章番号を含めない
+            section_number: false    # 節番号を含めない
+        content_requirements:
+            target_section:
+            subdivide: true         # 複数パートへの分割を要求
+            for_each_part:
+                - title: required
+                - summary: required
+                - pages:
+                    precision: 0.1
+                    format: "0.0"
+                - needsSubdivision:
+                    type: boolean
+                    purpose: 意味的凝集性の評価
+        restrictions:
+            - 推測情報を含めない
+            - 未確認情報を含めない
         """
         return prompt_section_list_creation
 
-    def create_prompt_content_creation(self,prompt_common:str,
-                                       book_title:str,book_summary:str,target:str,n_pages:str,section_summary:str,equation_frequency:str):
-        # 本文の内容の生成用プロンプト
-        prompt_content_creation = prompt_common + f"""
-        目的：以上の情報から，{book_title}というタイトルで本を作成しようと思います．本の概要を以下に示します．
-        {book_summary}
-        その中の{target}についての部分を{n_pages}ページで作成したいです．1ページあたり40行を想定しています．
-        この部分の概要は，以下です．
-        {section_summary}
-        その部分の内容を{n_pages}分，つまり{n_pages} × 40行分をLaTeXで出力してください．プリアンブルで必要なライブラリはすべてインポートされています．
-        推測や未確認の情報は含めないでください．見出しは必要なく，本文のみを出力してください．
-        {equation_frequency}
-        式をネストしないように，すなわち\\[ \\begin{{align*}} \\end{{align*}} \\]ではなく，\\begin{{align*}} \\end{{align*}}とするよう気をつけてください．
-        本の内容がプログラミング言語の場合は、なるべく多くのサンプルコードも作成して下さい。
-        コードを記述する際には、\\begin{{verbatim}} \\end{{verbatim}}で括るのを忘れないように気をつけください。
-        最終的にlatexmkでコンパイルしてPDFに変換するので変換に失敗するような特殊記号は必ずエスケープして下さい。
-        条件：
-        出力は、Latexを想定しており、Latexが持つ特殊記号・特殊文字の出力方法を考慮して下さい。
-        - 文中に特殊文字（例: #, $, %, &, _, \\{{, \\}},~, ^）が含まれる場合は、必ずエスケープしてください。
-          エスケープは、特殊文字の前にバックスラッシュ（\）を付けることで行います。
-        - 図解は不要です。外部のpngを参照するような記述はしないで下さい。
-        上記の注意事項をよく読み、絶対に絶対に絶対に間違わないようにして下さい。間違えなければ100万ドルの報奨もらえます。
-        出力形式：
-        出力形式は以下のようにお願いします．
-        ```tex
-        本文の内容
-        ```
+    def create_prompt_content_creation(self,book_title:str,book_summary:str,target:str,n_pages:str,section_summary:str,equation_frequency:str):
+        prompt_content_creation = f"""
+        task: LaTex形式での本文生成
+        input_required:
+            - book_content: {self.book_content}
+            - book_title: {book_title}
+            - book_summary: {book_summary}
+            - target: {target}
+            - section_summary: {section_summary}
+            - n_pages: {n_pages}
+            - equation_frequency: {equation_frequency}
+            - target_readers: {self.target_readers}
+            - additional_requirements: {self.additional_requirements}
+        formatting_rules:
+            writing_style: ですます調
+        page_format:
+            lines_per_page: 40
+        latex_format:
+            document_class: false  # \\documentclass{{book}}を含めない
+            preamble: false      # プリアンブルを含めない
+            begin_document: false # \\begin{{document}}を含めない
+            end_document: false   # \\end{{document}}を含めない
+            equations:
+                nesting: false    # 数式のネストを禁止
+                format: "\\begin{{align*}} \\end{{align*}}"  # ネストしない形式を使用
+            code_blocks:
+                wrapper: "\\begin{{verbatim}} \\end{{verbatim}}"
+            special_characters:
+                escape_required:
+                    "#": "\\#"    # #は\\#にエスケープ
+                    "$": "\\$"    # $は\\$にエスケープ
+                    "%": "\\%"    # %は\\%にエスケープ
+                    "&": "\\&"    # &は\\&にエスケープ
+                    "_": "\\_"    # _は\\_にエスケープ
+                    "{{": "\\{{"  # {{は\\{{にエスケープ
+                    "}}": "\\}}"  # }}は\\}}にエスケープ
+                    "~": "\\~"    # ~は\\~にエスケープ
+                    "^": "\\^"    # ^は\\^にエスケープ
+                escape_method: "各特殊文字の前にバックスラッシュ（\\）を付けてエスケープする"
+                example: |
+                    入力例:
+                        "Cost: $100 & discount: 25%"
+                        "Section #2.1 {{main}} with footnote_1"
+                        "Temperature: 20°C ~ 25°C ^ 2"
+                    出力例:
+                        "Cost: \\$100 \\& discount: 25\\%"
+                        "Section \\#2.1 \\{{main\\}} with footnote\\_1"
+                        "Temperature: 20°C \\~ 25°C \\^ 2"
+        content_requirements:
+            structure:
+                header: false  # 見出しなし
+                body: required # 本文のみ
+            programming_content:
+                sample_code: required_if_applicable # プログラミング関連の場合
+        restrictions:
+            - 推測情報を含めない
+            - 未確認情報を含めない
+            - 外部画像参照を含めない
+            - 図解を含めない
+            - LaTeXドキュメント構造を含めない
+            - プリアンブルを含めない
+        compilation:
+            target: PDF
+            compiler: latexmk
+            requirements:
+                - 全ての特殊文字をエスケープ
+                - コンパイルエラーを防ぐ形式
+                - 本文のみの出力（ドキュメント構造なし）
+        output_format: Latex
+        response_structure:
+            format: |
+            ```tex
+            本文の内容
+            ```
         """
+
         return prompt_content_creation
 
     def create_prompts(self):
         #1. 共通的なプロンプトを生成
-        self.common_prompt = self.create_common_prompt()
+        #self.common_prompt = self.create_common_prompt()
         #2. 本・章のタイトル，本・章の概要を記述したjsonを生成
-        self.prompt_book_title = self.create_prompt_book_title(self.common_prompt)
+        self.prompt_book_title = self.create_prompt_book_title()
 
         return True
 
@@ -357,7 +445,6 @@ class BookGenerator:
                         
                         # LLMによる出力
                         prompt = self.create_prompt_section_list_creation(
-                            self.common_prompt,
                             str(self.book_node["title"]),
                             str(self.book_node["summary"]),
                             str(child_node["title"]),
@@ -371,7 +458,6 @@ class BookGenerator:
 
                     elif not child_node["needsSubdivision"] or depth == self.max_depth-1:
                         prompt=self.create_prompt_content_creation(
-                            self.common_prompt,
                             str(self.book_node["title"]),
                             str(self.book_node["summary"]),
                             str(child_node["title"]),
