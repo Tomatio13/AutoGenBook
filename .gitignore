@@ -1,0 +1,11 @@
+logs
+*.log
+
+*.pyc
+.env
+
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+
+/output
