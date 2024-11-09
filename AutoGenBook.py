@@ -146,6 +146,16 @@ class BookGenerator:
         return is_valid
 
     def create_prompt_book_title(self):
+        """本のタイトルと概要を生成するためのプロンプトを作成します。"""
+        """
+        - 入力情報として、本の内容、ページ数、読者層、追加の考慮事項を提示する。
+        - 文体は「ですます調」を使用する。
+        - ページの形式として、1ページあたりの行数は40行と設定。
+        - タイトル形式では章番号を含めない。
+        - 本全体の構成要件として、5〜10文の要約が必須で、その中に内容の要約、目的、範囲と深さを含める。
+        - 章ごとの要件として、各章にはタイトルと要紹が必要で、ページ数は0.1単位で記載。また、内容の意味的な凝集性の評価が必要ならば細分化の必要性も確認。
+        - 制限として、推測や未確認の情報を含めないようにする。
+        """
         prompt_book_title = f"""
         task: 本の構造化
         input_required:
@@ -186,7 +196,17 @@ class BookGenerator:
         return prompt_book_title
 
     def create_prompt_section_list_creation(self,book_title:str,book_summary:str,
-                                            target:str,n_pages:str,section_summary:str):
+                                            section_title:str,section_pages:str,section_summary:str):
+        """本の特定部分の構造化を行うためのプロンプトを作成します。"""
+        """
+        - 入力情報として、本の内容、タイトル、想定読者、追加の考慮事項、サマリ、章のタイトル・サマリ、章のページ数を提供。
+        - 文体は「ですます調」を指定。
+        - ページ形式として1ページあたりの行数は40行に設定。
+        - タイトル形式では章と節の番号を含めない。
+        - 内容要件として、対象の節を複数のパートに分割することを要求し、各パートにはタイトル、サマリ、ページ数（0.1単位）を含める。また、意味的凝集性の観点で細分化の必要性も評価。
+        - 制限として、推測や未確認情報を含めないようにする
+        """
+
         prompt_section_list_creation = f"""
         task: 本の特定部分の構造化
         input_required:
@@ -195,9 +215,9 @@ class BookGenerator:
             - target_readers: {self.target_readers}
             - additional_requirements: {self.additional_requirements}
             - book_summary: {book_summary}
-            - target: {target}
+            - section_title: {section_title}
             - section_summary: {section_summary}
-            - n_pages: {n_pages}
+            - section_pages: {section_pages}
         formatting_rules:
             writing_style: ですます調
         page_format:
@@ -223,19 +243,34 @@ class BookGenerator:
         """
         return prompt_section_list_creation
 
-    def create_prompt_content_creation(self,book_title:str,book_summary:str,target:str,n_pages:str,section_summary:str,equation_frequency:str):
+    def create_prompt_content_creation(self,book_title:str,book_summary:str,section_title:str,section_pages:str,section_summary:str,equation_frequency:str):
+        """LaTex形式での本文生成を行うためのプロンプトを作成します。"""
+        """
+        - 入力情報として、本の内容、読者層、追加の考慮事項、タイトル、サマリ、章のタイトルとサマリ、章のページ数、数式の頻度を提供。
+        - 文体は「ですます調」を使用。
+        - ページ形式として1ページあたり40行。
+        - LaTeX設定として、以下を指定：
+            - \documentclass{}、プリアンブル、begin、end{document}は含めない。
+        - 数式はネストを禁止し、align*環境を使用。
+        - コードブロックはverbatim環境で包む。
+        - 特殊文字（#、$、%など）をエスケープして表示。
+        - 内容要件として、本文のみが必要で、プログラミング関連の内容であればサンプルコードを含む。
+        - 制限事項として、推測や未確認情報、外部画像参照、図解、LaTeXのドキュメント構造、プリアンブルを含めない。
+        - コンパイルはPDF形式をターゲットとし、コンパイラにはlatexmkを使用。特殊文字をエスケープして、コンパイルエラーがない形式にする。
+        """
+
         prompt_content_creation = f"""
         task: LaTex形式での本文生成
         input_required:
             - book_content: {self.book_content}
-            - book_title: {book_title}
-            - book_summary: {book_summary}
-            - target: {target}
-            - section_summary: {section_summary}
-            - n_pages: {n_pages}
-            - equation_frequency: {equation_frequency}
             - target_readers: {self.target_readers}
             - additional_requirements: {self.additional_requirements}
+            - book_title: {book_title}
+            - book_summary: {book_summary}
+            - section_title: {section_title}
+            - section_summary: {section_summary}
+            - section_pages: {section_pages}
+            - equation_frequency: {equation_frequency}
         formatting_rules:
             writing_style: ですます調
         page_format:
