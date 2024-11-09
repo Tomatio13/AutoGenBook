@@ -33,6 +33,11 @@ The following modifications have been made to AutoGenBook created by [hooked-on-
    # PROVIDER=OPENAI
    # MODEL=gpt-4o
    # OPENAI_API_KEY=<your openai api key>
+   
+   #PROVIDER=GEMINI
+   #MODEL=gemini-1.5-pro
+   #GEMINI_API_KEY=AIzaSyAgWuYymHzisZb2bUKKNvgUxsuXs3aQRJE
+   #GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/
 
    #PROVIDER=OLLAMA
    #MODEL=qwen2.5-coder:latest

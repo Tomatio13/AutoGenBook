@@ -34,6 +34,11 @@ AutoGenBookは、LLMを使用して自動的に本を生成するPythonベース
    # MODEL=gpt-4o
    # OPENAI_API_KEY=<あなたのOpenAI APIキー>
 
+   #PROVIDER=GEMINI
+   #MODEL=gemini-1.5-pro
+   #GEMINI_API_KEY=AIzaSyAgWuYymHzisZb2bUKKNvgUxsuXs3aQRJE
+   #GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/
+
    #PROVIDER=OLLAMA
    #MODEL=qwen2.5-coder:latest
    #OLLAMA_BASE_URL=http://localhost:11434/v1/
