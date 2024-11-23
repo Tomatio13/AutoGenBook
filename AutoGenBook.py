@@ -244,13 +244,12 @@ class BookGenerator:
         return prompt_section_list_creation
 
     def create_prompt_content_creation(self,book_title:str,book_summary:str,section_title:str,section_pages:str,section_summary:str,equation_frequency:str):
-        """LaTex形式での本文生成を行うためのプロンプトを作成します。"""
         """
         - 入力情報として、本の内容、読者層、追加の考慮事項、タイトル、サマリ、章のタイトルとサマリ、章のページ数、数式の頻度を提供。
         - 文体は「ですます調」を使用。
         - ページ形式として1ページあたり40行。
         - LaTeX設定として、以下を指定：
-            - \documentclass{}、プリアンブル、begin、end{document}は含めない。
+        - documentclass{}、プリアンブル、begin、end{document}は含めない。
         - 数式はネストを禁止し、align*環境を使用。
         - コードブロックはverbatim環境で包む。
         - 特殊文字（#、$、%など）をエスケープして表示。
@@ -555,13 +554,13 @@ class BookGenerator:
     def extract_content_list(self,string_list):
         # この関数は、入力されたstring_listから特定のパターン（数字とハイフンの組み合わせで'-p'で終わる）
         # にマッチする文字列のみを抽出し、新しいリストとして返す
-        pattern = r'(?:\d+-)*\d+-p'
+        pattern = r'(?:\d+-)*\d+-p'  # raw文字列として定義
         return [s for s in string_list if re.match(pattern, s)]
 
     def custom_sort_key(self,s):
         # この関数は、文字列sを数字の部分で分割し、それらを整数のリストに変換する
         # これにより、数値的な順序でソートするためのカスタムキーを生成する
-        parts = re.split(r'[-p]', s)
+        parts = re.split(r'[-p]', s)  # raw文字列として定義
         return [int(part) for part in parts if part != '']
 
     def sort_strings(self,string_list):
@@ -686,7 +685,7 @@ class BookGenerator:
     def create_wav(self,filename:str,speaker:int):
         logging.info("5. wavファイルの生成を開始します")
         cw = convert_wav()
-        cw.set_voicevox_speaker_id(speaker)
+        cw.set_voice_speaker_id(speaker)
         wav_filename=cw.generate_wav(filename)
         logging.info(f" {wav_filename}の出力が完了しました")
         return wav_filename

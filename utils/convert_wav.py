@@ -17,8 +17,16 @@ load_dotenv(dotenv_path)
 class convert_wav:
 
     def __init__(self):
-        self.voicevox_api_url=os.environ.get("VOICEVOX_API_URL")
-        self.voicevox_speaker_id=os.environ.get("VOICEVOX_SPEAKER_ID")
+        self.voice_kind=os.environ.get("VOICE_KIND")
+        if self.voice_kind=="VOICEVOX":
+            self.voice_api_url=os.environ.get("VOICEVOX_API_URL")
+        elif self.voice_kind=="AIVIS":
+            self.voice_api_url=os.environ.get("AIVSISPEECH_API_URL")
+        else:
+            logger.error("VOICE_KIND is not set")
+            raise ValueError("VOICE_KIND is not set")
+        logger.info(f"voice_kind: {self.voice_kind}")
+        logger.info(f"voice_api_url: {self.voice_api_url}")
 
     def split_text(self,text, max_length=1000):
         return [text[i:i + max_length] for i in range(0, len(text), max_length)]
@@ -112,7 +120,6 @@ class convert_wav:
                 doc.close()
 
     def generate_wav(self,filename:str):
-
         logging.info(f"Converting {filename} to wav Started")
         pdf_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ),  '..',filename))
         pdf_dir=os.path.dirname(pdf_path)
@@ -120,12 +127,12 @@ class convert_wav:
 
         split_texts = self.split_text(text)
         logging.info(f"Converting {filename} to wav text split into {len(split_texts)} parts")
-        logging.info(f"speaker: {self.voicevox_speaker_id}")
+        logging.info(f"speaker: {self.voice_speaker_id}")
         for i, part in enumerate(split_texts):
             part=self.convert_to_japanese(part)
             logging.info(f"Converting {filename} to wav text extracted")
-            query=self.generate_query(part,self.voicevox_api_url,self.voicevox_speaker_id)
-            self.generate_audio(query, i,pdf_dir,self.voicevox_api_url,self.voicevox_speaker_id)
+            query=self.generate_query(part,self.voice_api_url,self.voice_speaker_id)
+            self.generate_audio(query, i,pdf_dir,self.voice_api_url,self.voice_speaker_id)
             logging.info(f"Converting {filename} to wav audio file {i} generated")
 
         output_filename=self.set_output_filename(pdf_path)
@@ -147,16 +154,16 @@ class convert_wav:
             os.remove(os.path.join(pdf_dir,f"output_{i}.wav"))
         combined.export(output_filename, format="wav")
 
-    def set_voicevox_url(self,url):
-        self.voicevox_api_url=url
+    def set_voice_url(self,url):
+        self.voice_api_url=url
 
-    def set_voicevox_speaker_id(self,speaker_id):
-        self.voicevox_speaker_id=speaker_id
+    def set_voice_speaker_id(self,speaker_id):
+        self.voice_speaker_id=speaker_id
 
 def main(filename, url, speaker):
     cw = convert_wav()
-    cw.set_voicevox_url(url)
-    cw.set_voicevox_speaker_id(speaker) 
+    cw.set_voice_url(url)
+    cw.set_voice_speaker_id(speaker) 
     filename=cw.generate_wav(filename)
     return filename
 

@@ -1,0 +1,10 @@
+services:
+  aivisspeech:
+    image: aivisspeech:latest
+    volumes:
+      - .local:/home/user/.local
+    ports:
+      - "10101:10101"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+

@@ -44,7 +44,12 @@ AutoGenBookは、LLMを使用して自動的に本を生成するPythonベース
    #OLLAMA_BASE_URL=http://localhost:11434/v1/
    #OLLAMA_MAX_TOKENS=256
 
-   # VOICEVOX_API_URL=http://host.docker.internal:50001
+   # VOICEVOXを使用する場合は以下のように指定します。
+   # VOICE_KIND=VOICEVOX
+   # VOICEVOX_API_URL=http://host.docker.internal:50021
+   # AivisSpeach-Engineを使用する場合は以下のように指定します。
+   # VOICE_KIND=AIVIS
+   # AivisSPEECH_API_URL=http://host.docker.internal:10101
    ```
     *注意*
     Ollamaを指定することもできますが、MODELのmax_tokensとnum_ctxが小さいため、生成に失敗することが多く、推奨されません。
@@ -112,7 +117,7 @@ latexmkを何回か実行-->ログの確認-->再度コンパイルを繰り返�
 
 5: 数式を最大限活用します。できるだけ多くの概念や関係を数式で表現します。
 
-### wavファイルの出力
+### VOICEVOXを使用したwavファイルの出力
 WAVファイルは、VOICEVOXの音声キャラクターを使用して本の内容を読み上げ、WAVファイルを出力します。
 
 出力には[Voicevox Core Engine](https://github.com/VOICEVOX/voicevox_engine)を使用します。
@@ -173,6 +178,86 @@ Voicevoxのキャラクターは[キャラクター一覧](https://voicevox.hiro
 VOICEVOX：ずんだもん,四国めたん、春日部つむぎ、雨晴はう、波音リツ、玄野武宏、白上虎太郎、青山龍星、冥鳴ひまり、九州そら、
          もち子さん、剣崎雌雄、WhiteCUL、後鬼、No.7、ちび式じい、櫻歌ミコ、小夜/SAYO、ナースロボ_タイプT、✝聖騎士 紅櫻✝、
          雀松朱司、麒ヶ島宗麟、春歌ナナ、猫使アル、猫使ビィ、中国うさぎ、栗田まろん、あいえるたん、満別花丸、琴詠ニア、Voidoll(CV:丹下桜)
+
+### AivisSpeach-Engineを使用したwavファイルの出力
+WAVファイルは、AivisSpeach-Engineを使用して本の内容を読み上げ、WAVファイルを出力します。
+
+以下の方法で、AivisSpeach-Engineを起動してください。
+
+実行方法：
+```bash
+git clone https://github.com/Aivis-Project/AivisSpeech-Engine.git
+cp docker-compose-aivis.yml AivisSpeech-Engine/docker-compose.yml
+cd AivisSpeech-Engine
+mkdir .local
+docker build -t aivisspeech .
+docker compose up -d
+```
+
+*注意：GPUを使用しない場合は、以下のようにDockerfileの最終２行をコメントアウトしてください。*
+
+Dockerfile:
+```Dockerfile
+# Enable use_gpu
+#FROM runtime-env AS runtime-nvidia-env
+#CMD [ "gosu", "user", "/opt/python/bin/poetry", "run", "python", "./run.py", "--use_gpu", "--host", "0.0.0.0" ]
+```
+
+
+AivisSpeach-EngineのAPI URLは以下のように.envファイル内で指定してください。
+
+.envファイルの例：
+```bash
+VOICEVOX_API_URL=http://host.docker.internal:10101
+```
+
+### (補足) 音声合成モデルのダウンロード
+
+上記手順でAivisSpeach-Engineを起動した場合、`http://localhost:10101/docs`にアクセスするとAPIドキュメントが表示されます。
+
+音声合成モデルのダウンロードは、APIドキュメントの音声合成モデル管理`/avim_models/install`を使用してください。
+[AivisHub](https://hub.aivis-project.com/)からモデルを手動でダウンロードするか、
+音声合成モデルのURLを指定してダウンロードすることができます。
+
+### (補足) 音声合成モデルのIDの確認方法
+
+音声合成モデルのIDは、APIドキュメント`http://localhost:10101/docs`にその他にある`/speakers`を使用して確認することができます。
+
+以下のようなJSONデータが表示さるのでIDを確認して下さい。
+```json
+[
+  {
+    "name": "Anneli",
+    "speaker_uuid": "e756b8e4-b606-4e15-99b1-3f9c6a1b2317",
+    "styles": [
+      {
+        "name": "ノーマル",
+        "id": 888753760,
+        "type": "talk"
+      }
+    ],
+    "version": "1.0.0",
+    "supported_features": {
+      "permitted_synthesis_morphing": "NOTHING"
+    }
+  },
+  {
+    "name": "fumifumi",
+    "speaker_uuid": "754d769b-7128-4172-964e-b10945d55e39",
+    "styles": [
+      {
+        "name": "ノーマル",
+        "id": 606865152,
+        "type": "talk"
+      }
+    ],
+    "version": "1.0.0",
+    "supported_features": {
+      "permitted_synthesis_morphing": "NOTHING"
+    }
+  }
+]
+```
 
 ## APIエンドポイント
 
